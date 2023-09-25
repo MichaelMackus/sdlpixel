@@ -1,4 +1,4 @@
-EXAMPLES=test.out
+EXAMPLES=fast.out
 CCFLAGS=-Wall
 LDFLAGS=-lSDL2
 
@@ -8,4 +8,4 @@ all: $(EXAMPLES)
 	gcc $< -o $@ $(CCFLAGS) $(LDFLAGS)
 
 clean:
-	rm rl *.o
+	rm *.out *.o
