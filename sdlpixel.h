@@ -42,6 +42,15 @@ void sdlpixel_create_with_flags(const char *title, unsigned int width, unsigned 
 // initialize SDL and sdlpixel library
 void sdlpixel_init(SDL_Window *from_window, SDL_Renderer *from_renderer);
 
+// get the sdlpixel renderer
+SDL_Renderer *sdlpixel_get_renderer();
+
+// get the sdlpixel window
+SDL_Window *sdlpixel_get_window();
+
+// get the sdlpixel surface
+SDL_Surface *sdlpixel_get_surface();
+
 // associates a surface with sdlpixel
 // NOTE: you are responsible for freeing the surface passed to this function
 void sdlpixel_use_surface(SDL_Surface *from_surface);
@@ -51,7 +60,6 @@ void sdlpixel_quit();
 
 void sdlpixel_refresh();
 void sdlpixel_clear();
-SDL_Window *sdlpixel_get_window();
 
 SDL_Color sdlpixel_rgb(uint8_t r, uint8_t g, uint8_t b);
 SDL_Color sdlpixel_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
@@ -124,6 +132,21 @@ void sdlpixel_init(SDL_Window *from_window, SDL_Renderer *from_renderer)
     SDL_RenderPresent(renderer);
 }
 
+SDL_Renderer *sdlpixel_get_renderer()
+{
+    return renderer;
+}
+
+SDL_Window *sdlpixel_get_window()
+{
+    return window;
+}
+
+SDL_Surface *sdlpixel_get_surface()
+{
+    return surface;
+}
+
 void sdlpixel_use_surface(SDL_Surface *from_surface)
 {
     if (surface) {
@@ -131,11 +154,6 @@ void sdlpixel_use_surface(SDL_Surface *from_surface)
     }
 
     surface = SDL_ConvertSurfaceFormat(from_surface, SDL_PIXELFORMAT_RGBA8888, 0);
-}
-
-SDL_Window *sdlpixel_get_window()
-{
-    return window;
 }
 
 void sdlpixel_quit()
