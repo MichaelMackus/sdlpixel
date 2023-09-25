@@ -36,6 +36,9 @@ extern "C"{
 // sdlpixel_create creates SDL window & also calls sdlpixel_init
 void sdlpixel_create(const char *title, unsigned int width, unsigned int height);
 
+// sdlpixel_create_with_flags is a convenience function (e.g. for fullscreen windows)
+void sdlpixel_create_with_flags(const char *title, unsigned int width, unsigned int height, Uint32 window_flags);
+
 // initialize SDL and sdlpixel library
 void sdlpixel_init(SDL_Window *from_window, SDL_Renderer *from_renderer);
 
@@ -68,12 +71,21 @@ void sdlpixel_create(const char *title, unsigned int width, unsigned int height)
         assert("ERROR: Unable to init SDL video" == 0);
     }
 
+    sdlpixel_create_with_flags(title, width, height, SDL_WINDOW_SHOWN);
+}
+
+void sdlpixel_create_with_flags(const char *title, unsigned int width, unsigned int height, Uint32 window_flags)
+{
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        assert("ERROR: Unable to init SDL video" == 0);
+    }
+
     window = SDL_CreateWindow(title,
                               SDL_WINDOWPOS_UNDEFINED, 
                               SDL_WINDOWPOS_UNDEFINED, 
                               width,
                               height, 
-                              SDL_WINDOW_SHOWN);
+                              window_flags);
 
 
     if (window == NULL) {
