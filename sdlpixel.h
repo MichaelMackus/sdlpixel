@@ -35,8 +35,17 @@ extern "C"{
 
 // sdlpixel_create creates SDL window & also calls sdlpixel_init
 void sdlpixel_create(const char *title, unsigned int width, unsigned int height);
+
+// initialize SDL and sdlpixel library
 void sdlpixel_init(SDL_Window *from_window, SDL_Renderer *from_renderer);
+
+// associates a surface with sdlpixel
+// NOTE: you are responsible for freeing the surface passed to this function
+void sdlpixel_use_surface(SDL_Surface *from_surface);
+
+// calls SDL_Quit and frees memory
 void sdlpixel_quit();
+
 void sdlpixel_refresh();
 void sdlpixel_clear();
 SDL_Window *sdlpixel_get_window();
@@ -49,9 +58,8 @@ void sdlpixel_plot(unsigned int x, unsigned int y, const SDL_Color *color);
 
 SDL_Window *window;
 SDL_Renderer *renderer;
-SDL_Surface *window_surface;
 SDL_Surface *surface;
-int surface_locked, window_height, window_width;
+SDL_Surface *window_surface;
 uint32_t *pixels;
 
 void sdlpixel_create(const char *title, unsigned int width, unsigned int height)
@@ -72,8 +80,6 @@ void sdlpixel_create(const char *title, unsigned int width, unsigned int height)
         assert("ERROR: Unable to create SDL window" == 0);
     }
 
-    SDL_GetWindowSize(window, &window_width, &window_height);
-
     renderer = SDL_CreateRenderer(window, 0, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
     if (renderer == NULL) {
@@ -89,7 +95,6 @@ void sdlpixel_init(SDL_Window *from_window, SDL_Renderer *from_renderer)
     assert(from_renderer);
 
     window = from_window;
-    SDL_GetWindowSize(window, &window_width, &window_height);
     renderer = from_renderer;
 
     window_surface = SDL_GetWindowSurface(window);
@@ -107,6 +112,15 @@ void sdlpixel_init(SDL_Window *from_window, SDL_Renderer *from_renderer)
     SDL_RenderPresent(renderer);
 }
 
+void sdlpixel_use_surface(SDL_Surface *from_surface)
+{
+    if (surface) {
+        SDL_FreeSurface(surface);
+    }
+
+    surface = SDL_ConvertSurfaceFormat(from_surface, SDL_PIXELFORMAT_RGBA8888, 0);
+}
+
 SDL_Window *sdlpixel_get_window()
 {
     return window;
@@ -122,12 +136,17 @@ void sdlpixel_quit()
 
 void sdlpixel_refresh()
 {
-    if (surface_locked) {
+    if (surface->locked) {
         SDL_UnlockSurface(surface);
-        surface_locked = 0;
     }
     sdlpixel_clear();
-    SDL_BlitSurface(surface, &surface->clip_rect, window_surface, &window_surface->clip_rect);
+    SDL_Rect rect = surface->clip_rect;
+    SDL_Rect window_rect = window_surface->clip_rect;
+    if (rect.w != window_rect.w || rect.h != window_rect.h) {
+        SDL_BlitScaled(surface, &rect, window_surface, &window_rect);
+    } else {
+        SDL_BlitSurface(surface, &rect, window_surface, &window_rect);
+    }
     SDL_UpdateWindowSurface(window);
 }
 
@@ -154,13 +173,12 @@ SDL_Color sdlpixel_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 
 void sdlpixel_plot(unsigned int x, unsigned int y, const SDL_Color *color)
 {
-    if (!surface_locked) {
+    if (!surface->locked) {
         SDL_LockSurface(surface);
-        surface_locked = 1;
         pixels = (uint32_t*) surface->pixels;
     }
 
-    pixels[x + y*window_width] = color->r << 24 | color->g << 16 | color->b << 8 | color->a;
+    pixels[x + y*surface->clip_rect.w] = color->r << 24 | color->g << 16 | color->b << 8 | color->a;
 }
 
 #endif

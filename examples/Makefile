@@ -1,4 +1,4 @@
-EXAMPLES=fast.out pixel.out
+EXAMPLES=fast.out pixel.out scale.out
 CCFLAGS=-Wall
 LDFLAGS=-lSDL2
 
