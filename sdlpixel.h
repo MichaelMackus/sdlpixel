@@ -40,7 +40,7 @@ void sdlpixel_create(const char *title, unsigned int width, unsigned int height)
 void sdlpixel_create_with_flags(const char *title, unsigned int width, unsigned int height, Uint32 window_flags);
 
 // initialize SDL and sdlpixel library
-void sdlpixel_init(SDL_Window *from_window, SDL_Renderer *from_renderer);
+void sdlpixel_init(SDL_Window *window, SDL_Renderer *renderer);
 
 // get the sdlpixel renderer
 SDL_Renderer *sdlpixel_get_renderer();
@@ -53,7 +53,7 @@ SDL_Surface *sdlpixel_get_surface();
 
 // associates a surface with sdlpixel
 // NOTE: you are responsible for freeing the surface passed to this function
-void sdlpixel_use_surface(SDL_Surface *from_surface);
+void sdlpixel_use_surface(SDL_Surface *surface);
 
 // calls SDL_Quit and frees memory
 void sdlpixel_quit();
@@ -67,11 +67,11 @@ void sdlpixel_plot(unsigned int x, unsigned int y, const SDL_Color *color);
 
 #ifdef SDLPIXEL_COMPILE
 
-SDL_Window *window;
-SDL_Renderer *renderer;
-SDL_Surface *surface;
-SDL_Surface *window_surface;
-uint32_t *pixels;
+SDL_Window *sdlpixel_window;
+SDL_Renderer *sdlpixel_renderer;
+SDL_Surface *sdlpixel_surface;
+SDL_Surface *sdlpixel_window_surface;
+uint32_t *sdlpixel_pixels;
 
 void sdlpixel_create(const char *title, unsigned int width, unsigned int height)
 {
@@ -88,7 +88,7 @@ void sdlpixel_create_with_flags(const char *title, unsigned int width, unsigned 
         assert("ERROR: Unable to init SDL video" == 0);
     }
 
-    window = SDL_CreateWindow(title,
+    sdlpixel_window = SDL_CreateWindow(title,
                               SDL_WINDOWPOS_UNDEFINED, 
                               SDL_WINDOWPOS_UNDEFINED, 
                               width,
@@ -96,93 +96,93 @@ void sdlpixel_create_with_flags(const char *title, unsigned int width, unsigned 
                               window_flags);
 
 
-    if (window == NULL) {
+    if (sdlpixel_window == NULL) {
         assert("ERROR: Unable to create SDL window" == 0);
     }
 
-    renderer = SDL_CreateRenderer(window, 0, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    sdlpixel_renderer = SDL_CreateRenderer(sdlpixel_window, 0, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
-    if (renderer == NULL) {
+    if (sdlpixel_renderer == NULL) {
         assert("ERROR: Unable to create SDL renderer" == 0);
     }
 
-    sdlpixel_init(window, renderer);
+    sdlpixel_init(sdlpixel_window, sdlpixel_renderer);
 }
 
-void sdlpixel_init(SDL_Window *from_window, SDL_Renderer *from_renderer)
+void sdlpixel_init(SDL_Window *window, SDL_Renderer *renderer)
 {
-    assert(from_window);
-    assert(from_renderer);
+    assert(window);
+    assert(renderer);
 
-    window = from_window;
-    renderer = from_renderer;
+    sdlpixel_window = window;
+    sdlpixel_renderer = renderer;
 
-    window_surface = SDL_GetWindowSurface(window);
+    sdlpixel_window_surface = SDL_GetWindowSurface(sdlpixel_window);
 
-    if (window_surface == NULL) {
+    if (sdlpixel_window_surface == NULL) {
         assert("ERROR: Unable to get SDL surface" == 0);
     }
 
-    surface = SDL_ConvertSurfaceFormat(window_surface, SDL_PIXELFORMAT_RGBA8888, 0);
+    sdlpixel_surface = SDL_ConvertSurfaceFormat(sdlpixel_window_surface, SDL_PIXELFORMAT_RGBA8888, 0);
 
-    if (surface == NULL) {
+    if (sdlpixel_surface == NULL) {
         assert("ERROR: Unable to convert SDL surface" == 0);
     }
 
-    SDL_RenderPresent(renderer);
+    SDL_RenderPresent(sdlpixel_renderer);
 }
 
 SDL_Renderer *sdlpixel_get_renderer()
 {
-    return renderer;
+    return sdlpixel_renderer;
 }
 
 SDL_Window *sdlpixel_get_window()
 {
-    return window;
+    return sdlpixel_window;
 }
 
 SDL_Surface *sdlpixel_get_surface()
 {
-    return surface;
+    return sdlpixel_surface;
 }
 
-void sdlpixel_use_surface(SDL_Surface *from_surface)
+void sdlpixel_use_surface(SDL_Surface *surface)
 {
-    if (surface) {
-        SDL_FreeSurface(surface);
+    if (sdlpixel_surface) {
+        SDL_FreeSurface(sdlpixel_surface);
     }
 
-    surface = SDL_ConvertSurfaceFormat(from_surface, SDL_PIXELFORMAT_RGBA8888, 0);
+    sdlpixel_surface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA8888, 0);
 }
 
 void sdlpixel_quit()
 {
-    SDL_DestroyWindow(window);
-    SDL_DestroyRenderer(renderer);
-    SDL_FreeSurface(surface);
+    SDL_DestroyWindow(sdlpixel_window);
+    SDL_DestroyRenderer(sdlpixel_renderer);
+    SDL_FreeSurface(sdlpixel_surface);
     SDL_Quit();
 }
 
 void sdlpixel_refresh()
 {
-    if (surface->locked) {
-        SDL_UnlockSurface(surface);
+    if (sdlpixel_surface->locked) {
+        SDL_UnlockSurface(sdlpixel_surface);
     }
     sdlpixel_clear();
-    SDL_Rect rect = surface->clip_rect;
-    SDL_Rect window_rect = window_surface->clip_rect;
+    SDL_Rect rect = sdlpixel_surface->clip_rect;
+    SDL_Rect window_rect = sdlpixel_window_surface->clip_rect;
     if (rect.w != window_rect.w || rect.h != window_rect.h) {
-        SDL_BlitScaled(surface, &rect, window_surface, &window_rect);
+        SDL_BlitScaled(sdlpixel_surface, &rect, sdlpixel_window_surface, &window_rect);
     } else {
-        SDL_BlitSurface(surface, &rect, window_surface, &window_rect);
+        SDL_BlitSurface(sdlpixel_surface, &rect, sdlpixel_window_surface, &window_rect);
     }
-    SDL_UpdateWindowSurface(window);
+    SDL_UpdateWindowSurface(sdlpixel_window);
 }
 
 void sdlpixel_clear()
 {
-    SDL_RenderClear(renderer);
+    SDL_RenderClear(sdlpixel_renderer);
 }
 
 SDL_Color sdlpixel_rgb(uint8_t r, uint8_t g, uint8_t b)
@@ -203,12 +203,12 @@ SDL_Color sdlpixel_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 
 void sdlpixel_plot(unsigned int x, unsigned int y, const SDL_Color *color)
 {
-    if (!surface->locked) {
-        SDL_LockSurface(surface);
-        pixels = (uint32_t*) surface->pixels;
+    if (!sdlpixel_surface->locked) {
+        SDL_LockSurface(sdlpixel_surface);
+        sdlpixel_pixels = (uint32_t*) sdlpixel_surface->pixels;
     }
 
-    pixels[x + y*surface->clip_rect.w] = color->r << 24 | color->g << 16 | color->b << 8 | color->a;
+    sdlpixel_pixels[x + y*sdlpixel_surface->clip_rect.w] = color->r << 24 | color->g << 16 | color->b << 8 | color->a;
 }
 
 #endif
