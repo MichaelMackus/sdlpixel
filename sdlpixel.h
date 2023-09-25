@@ -22,3 +22,20 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
+
+#ifndef SDLPIXEL_LIB_H
+#define SDLPIXEL_LIB_H
+
+#ifdef __cplusplus
+extern "C"{
+#endif 
+
+
+#ifdef SDLPIXEL_COMPILE
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
