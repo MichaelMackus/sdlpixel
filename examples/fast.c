@@ -39,9 +39,9 @@ int main()
     surface = SDL_ConvertSurfaceFormat(window_surface, SDL_PIXELFORMAT_RGBA8888, 0);
 
     // We clear what we draw before
-    SDL_RenderClear(s);
+    /* SDL_RenderClear(s); */
     // Set our color for the draw functions
-    SDL_SetRenderDrawColor(s, 0xFF, 0xFF, 0xFF, 0xFF);
+    /* SDL_SetRenderDrawColor(s, 0xFF, 0xFF, 0xFF, 0xFF); */
     // show the window
     SDL_RenderPresent(s);
 
@@ -57,7 +57,7 @@ int main()
             }
 
             if (generate) {
-                int msec, i;
+                int msec;
                 clock_t start, diff;
                 unsigned char r,g,b;
                 uint32_t *pixels;
@@ -66,6 +66,7 @@ int main()
                 start = clock();
 
                 SDL_RenderClear(s);
+                window_surface = SDL_GetWindowSurface(window);
                 SDL_LockSurface(surface);
 
                 pixels = (uint32_t*) surface->pixels;
@@ -91,6 +92,7 @@ int main()
 
                 SDL_BlitSurface(surface, &rect, window_surface, &rect);
                 SDL_UpdateWindowSurface(window);
+                /* SDL_RenderPresent(s); */
 
                 diff = clock() - start;
                 msec = diff * 1000 / CLOCKS_PER_SEC;
