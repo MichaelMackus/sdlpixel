@@ -117,7 +117,6 @@ void sdlpixel_quit()
     SDL_DestroyWindow(window);
     SDL_DestroyRenderer(renderer);
     SDL_FreeSurface(surface);
-    SDL_FreeSurface(window_surface);
     SDL_Quit();
 }
 
