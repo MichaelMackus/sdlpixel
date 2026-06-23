@@ -31,7 +31,7 @@
 
 #ifdef __cplusplus
 extern "C"{
-#endif 
+#endif
 
 // sdlpixel_create creates SDL window & also calls sdlpixel_init
 void sdlpixel_create(const char *title, unsigned int width, unsigned int height);
@@ -58,12 +58,27 @@ void sdlpixel_use_surface(SDL_Surface *surface);
 // calls SDL_Quit and frees memory
 void sdlpixel_quit();
 
+// call refresh once per frame to blit to the screen
 void sdlpixel_refresh();
-void sdlpixel_clear();
 
 SDL_Color sdlpixel_rgb(uint8_t r, uint8_t g, uint8_t b);
 SDL_Color sdlpixel_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+
+// plot a RGBA pixel at x, y onto the internal surface
 void sdlpixel_plot(unsigned int x, unsigned int y, const SDL_Color *color);
+
+// plot a RGB pixel at x, y onto the internal surface
+void sdlpixel_plot_rgb(unsigned int x, unsigned int y, uint8_t r, uint8_t g, uint8_t b);
+
+// plot a RGBA pixel at x, y onto the internal surface
+void sdlpixel_plot_rgba(unsigned int x, unsigned int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+
+// get a raw pointer to the RGBA pixels
+// NOTE: this pointer is automatically locked - make sure you call sdlpixel_refresh at end of frame!
+uint32_t *sdlpixel_get_rgba_pixels();
+
+// get the pitch (i.e. size of a row of pixels) for the RGBA pixels array
+int sdlpixel_get_pitch();
 
 #ifdef SDLPIXEL_COMPILE
 
@@ -88,25 +103,26 @@ void sdlpixel_create_with_flags(const char *title, unsigned int width, unsigned 
         assert("ERROR: Unable to init SDL video" == 0);
     }
 
-    sdlpixel_window = SDL_CreateWindow(title,
-                              SDL_WINDOWPOS_UNDEFINED, 
-                              SDL_WINDOWPOS_UNDEFINED, 
+    SDL_Window *win = SDL_CreateWindow(title,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED,
                               width,
-                              height, 
+                              height,
                               window_flags);
 
 
-    if (sdlpixel_window == NULL) {
+    if (win == NULL) {
         assert("ERROR: Unable to create SDL window" == 0);
     }
 
-    sdlpixel_renderer = SDL_CreateRenderer(sdlpixel_window, 0, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    /* SDL_Renderer *renderer = SDL_CreateRenderer(win, 0, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC); */
+    SDL_Renderer *renderer = SDL_CreateRenderer(win, 0, SDL_RENDERER_PRESENTVSYNC);
 
-    if (sdlpixel_renderer == NULL) {
+    if (renderer == NULL) {
         assert("ERROR: Unable to create SDL renderer" == 0);
     }
 
-    sdlpixel_init(sdlpixel_window, sdlpixel_renderer);
+    sdlpixel_init(win, renderer);
 }
 
 void sdlpixel_init(SDL_Window *window, SDL_Renderer *renderer)
@@ -164,12 +180,13 @@ void sdlpixel_quit()
     SDL_Quit();
 }
 
+// TODO support streaming via texture, so we can use SDL draw functions
+// TODO see: examples/fast_texture.c
 void sdlpixel_refresh()
 {
     if (sdlpixel_surface->locked) {
         SDL_UnlockSurface(sdlpixel_surface);
     }
-    sdlpixel_clear();
     SDL_Rect rect = sdlpixel_surface->clip_rect;
     SDL_Rect window_rect = sdlpixel_window_surface->clip_rect;
     if (rect.w != window_rect.w || rect.h != window_rect.h) {
@@ -177,12 +194,7 @@ void sdlpixel_refresh()
     } else {
         SDL_BlitSurface(sdlpixel_surface, &rect, sdlpixel_window_surface, &window_rect);
     }
-    SDL_UpdateWindowSurface(sdlpixel_window);
-}
-
-void sdlpixel_clear()
-{
-    SDL_RenderClear(sdlpixel_renderer);
+    SDL_UpdateWindowSurface(sdlpixel_window); // TODO avoid this so we can use sdl draw functions
 }
 
 SDL_Color sdlpixel_rgb(uint8_t r, uint8_t g, uint8_t b)
@@ -208,7 +220,45 @@ void sdlpixel_plot(unsigned int x, unsigned int y, const SDL_Color *color)
         sdlpixel_pixels = (uint32_t*) sdlpixel_surface->pixels;
     }
 
-    sdlpixel_pixels[x + y*sdlpixel_surface->clip_rect.w] = color->r << 24 | color->g << 16 | color->b << 8 | color->a;
+    if (color) {
+        sdlpixel_pixels[x + y*sdlpixel_surface->clip_rect.w] = color->r << 24 | color->g << 16 | color->b << 8 | color->a;
+    }
+}
+
+int stride;
+void sdlpixel_plot_rgb(unsigned int x, unsigned int y, uint8_t r, uint8_t g, uint8_t b)
+{
+    if (!sdlpixel_surface->locked) {
+        SDL_LockSurface(sdlpixel_surface);
+        sdlpixel_pixels = (uint32_t*) sdlpixel_surface->pixels;
+    }
+
+    sdlpixel_pixels[x + y*sdlpixel_surface->clip_rect.w] = r << 24 | g << 16 | b << 8 | 0xFF;
+}
+
+void sdlpixel_plot_rgba(unsigned int x, unsigned int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+    if (!sdlpixel_surface->locked) {
+        SDL_LockSurface(sdlpixel_surface);
+        sdlpixel_pixels = (uint32_t*) sdlpixel_surface->pixels;
+    }
+
+    sdlpixel_pixels[x + y*sdlpixel_surface->clip_rect.w] = r << 24 | g << 16 | b << 8 | a;
+}
+
+uint32_t *sdlpixel_get_rgba_pixels()
+{
+    if (!sdlpixel_surface->locked) {
+        SDL_LockSurface(sdlpixel_surface);
+        sdlpixel_pixels = (uint32_t*) sdlpixel_surface->pixels;
+    }
+
+    return sdlpixel_pixels;
+}
+
+int sdlpixel_get_pitch()
+{
+    return sdlpixel_surface->clip_rect.w;
 }
 
 #endif
